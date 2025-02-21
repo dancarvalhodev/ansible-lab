@@ -1,0 +1,36 @@
+- name: Install/Configure Web Basic Things
+  hosts: ubuntu
+  become: true
+  tasks:
+    - name: Install Vim
+      ansible.builtin.apt:
+        name: vim
+        state: present
+        update_cache: true
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: true
+
+    - name: Make sure docker is started
+      ansible.builtin.systemd:
+        name: docker.service
+        state: started
+
+    - name: Add the user 'lab' with a bash shell, appending the group 'docker' to the user's groups
+      ansible.builtin.user:
+        name: lab
+        create_home: true
+        shell: /bin/bash
+        groups: docker
+        append: true
+
+    - name: Set authorized key taken from file
+      ansible.posix.authorized_key:
+        user: lab
+        state: present
+        key: "{{ lookup('file', '/home/dan/.ssh/id_ed25519.pub') }}"

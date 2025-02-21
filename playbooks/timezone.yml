@@ -1,0 +1,24 @@
+- name: Set timezone and configure timesyncd
+  hosts: ubuntu
+  become: true
+  tasks:
+    - name: Set timezone
+      ansible.builtin.command: timedatectl set-timezone America/Sao_Paulo
+      register: timedatectl_output
+      changed_when: "'Time zone America/Sao_Paulo' not in timedatectl_output.stdout"
+
+    - name: Make sure timesyncd is stopped
+      ansible.builtin.systemd:
+        name: systemd-timesyncd.service
+        state: stopped
+
+    - name: Copy over the timesyncd
+      ansible.builtin.template:
+        src: files/templates/timesyncd.conf
+        dest: /etc/systemd/timesyncd.conf
+        mode: '0655'
+
+    - name: Make sure timesyncd is started
+      ansible.builtin.systemd:
+        name: systemd-timesyncd.service
+        state: started
