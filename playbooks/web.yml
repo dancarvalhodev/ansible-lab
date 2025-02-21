@@ -8,6 +8,27 @@
         state: present
         update_cache: true
 
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Install a latest ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Make sure nginx is started
+      ansible.builtin.systemd:
+        name: nginx.service
+        state: started
+
+    - name: Setup firewall with ufw
+      ansible.builtin.command: ufw allow 'Nginx HTTP'
+      register: ufw_nginx
+      changed_when: false
+
     - name: Install Docker
       ansible.builtin.apt:
         name:
