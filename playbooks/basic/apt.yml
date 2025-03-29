@@ -1,5 +1,5 @@
-- name: Upgrade System
-  hosts: ubuntu
+- name: Update System
+  hosts: server
   become: true
   tasks:
     - name: Apt

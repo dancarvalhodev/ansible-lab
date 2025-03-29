@@ -1,5 +1,5 @@
 - name: Set timezone and configure timesyncd
-  hosts: ubuntu
+  hosts: server
   become: true
   tasks:
     - name: Set timezone
@@ -14,7 +14,7 @@
 
     - name: Copy over the timesyncd
       ansible.builtin.template:
-        src: files/templates/timesyncd.conf
+        src: ../../config/templates/timesyncd.conf
         dest: /etc/systemd/timesyncd.conf
         mode: '0655'
 
