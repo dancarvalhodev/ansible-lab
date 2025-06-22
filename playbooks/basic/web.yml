@@ -8,9 +8,9 @@
         state: present
         update_cache: true
 
-    - name: Install Btop
+    - name: Install Unzip
       ansible.builtin.apt:
-        name: btop
+        name: unzip
         state: present
         update_cache: true
 
@@ -72,13 +72,13 @@
       ansible.posix.authorized_key:
         user: lab
         state: present
-        key: "{{ lookup('file', '/home/dan/.ssh/id_ed25519.pub') }}"
+        key: "{{ lookup('file', '/Users/dan/.ssh/id_ed25519.pub') }}"
 
     - name: Set authorized key taken from file
       ansible.posix.authorized_key:
         user: syncthing
         state: present
-        key: "{{ lookup('file', '/home/dan/.ssh/id_ed25519.pub') }}"
+        key: "{{ lookup('file', '/Users/dan/.ssh/id_ed25519.pub') }}"
 
     - name: Install syncthing manually
       block:
@@ -88,8 +88,20 @@
           register: command_result
           ignore_errors: true
 
-        - name: Executar script de recuperação se o comando falhar
+        - name: Run install script if command fails
           ansible.builtin.script: ../../scripts/syncthing.sh
+          when: command_result is failed
+
+    - name: Install aws cli manually
+      block:
+        - name: Verify if aws cli is installed
+          ansible.builtin.command: aws --version
+          changed_when: true
+          register: command_result
+          ignore_errors: true
+
+        - name: Run install script if command fails
+          ansible.builtin.script: ../../scripts/aws-cli.sh
           when: command_result is failed
 
     - name: Reboot machine and send a message
