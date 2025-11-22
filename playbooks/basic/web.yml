@@ -76,6 +76,14 @@
       become: true
       become_user: projects
 
+    - name: Build and start Syncthing container
+      ansible.builtin.command: >
+        docker compose -f /home/projects/repos/docker-syncthing/docker-compose.yml
+        up -d --build
+      become: true
+      become_user: projects
+      changed_when: false
+
     - name: Global alias
       ansible.builtin.copy:
         dest: /etc/profile.d/alias_ans.sh
@@ -84,7 +92,7 @@
           alias dbu="docker compose build && docker compose up -d --force-recreate"
           alias aws="cd /home/projects/repos/docker-aws-cli && docker compose run --rm aws-cli"
 
-    - name: Copiar configuração do Syncthing para sites-available
+    - name: Copy Syncthing config to sites-available
       ansible.builtin.template:
         src: ../../config/nginx/syncthing.conf
         dest: /etc/nginx/sites-available/syncthing.conf
@@ -92,25 +100,20 @@
         group: root
         mode: "0644"
 
-    - name: Habilitar site Syncthing (symlink)
+    - name: Enable Syncthing (symlink)
       ansible.builtin.file:
         src: /etc/nginx/sites-available/syncthing.conf
         dest: /etc/nginx/sites-enabled/syncthing.conf
         state: link
         force: true
 
-    - name: Remover site default (opcional)
-      ansible.builtin.file:
-        path: /etc/nginx/sites-enabled/default
-        state: absent
-
-    - name: Validar configuração Nginx
+    - name: Validate Nginx configuration
       ansible.builtin.command: nginx -t
       register: nginx_test
       changed_when: false
       failed_when: nginx_test.rc != 0
 
-    - name: Reiniciar Nginx se tudo estiver ok
+    - name: Restart Nginx if configuration is valid
       ansible.builtin.service:
         name: nginx
         state: restarted
