@@ -56,10 +56,20 @@
         state: present
         key: "{{ lookup('file', ssh_path) }}"
 
-    - name: Clone AWS CLI repository
+    - name: Clone AWS CLI Docker Repository
       ansible.builtin.git:
         repo: https://github.com/dancarvalhodev/docker-aws-cli.git
         dest: /home/projects/repos/docker-aws-cli
+        version: master
+        clone: true
+        update: true
+      become: true
+      become_user: projects
+
+    - name: Clone Syncthing Docker repository
+      ansible.builtin.git:
+        repo: https://github.com/dancarvalhodev/docker-syncthing.git
+        dest: /home/projects/repos/docker-syncthing
         version: master
         clone: true
         update: true
@@ -74,6 +84,39 @@
           alias dbu="docker compose build && docker compose up -d --force-recreate"
           alias aws="cd /home/projects/repos/docker-aws-cli && docker compose run --rm aws-cli"
 
-    - name: Reboot machine and send a message
-      ansible.builtin.reboot:
-        msg: "Rebooting machine in 5 seconds"
+    - name: Copiar configuração do Syncthing para sites-available
+      ansible.builtin.template:
+        src: ../../config/nginx/syncthing.conf
+        dest: /etc/nginx/sites-available/syncthing.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Habilitar site Syncthing (symlink)
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/syncthing.conf
+        dest: /etc/nginx/sites-enabled/syncthing.conf
+        state: link
+        force: true
+
+    - name: Remover site default (opcional)
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Validar configuração Nginx
+      ansible.builtin.command: nginx -t
+      register: nginx_test
+      changed_when: false
+      failed_when: nginx_test.rc != 0
+
+    - name: Reiniciar Nginx se tudo estiver ok
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      when: nginx_test.rc == 0
+
+
+    # - name: Reboot machine and send a message
+    #   ansible.builtin.reboot:
+    #     msg: "Rebooting machine in 5 seconds"

@@ -16,9 +16,13 @@ My personal ansible script to configure my personal server.
 
 ansible-vault encrypt config/secrets/vault.yml
 ansible-vault encrypt inventory/hosts.yml
+ansible-vault encrypt inventory/group_vars/server/nginx.yml
 
 ssh_path: "PATH_TO_SSH_PUBLIC_KEY"
 
 server:
   hosts:
     SERVER_IP
+
+
+syncthing_domain: DNS_OR_IP
