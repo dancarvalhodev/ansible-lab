@@ -1,8 +1,8 @@
-- name: Update System
+- name: APT Playbook
   hosts: server
   become: true
   tasks:
-    - name: Apt
+    - name: Run apt update and upgrade
       ansible.builtin.apt:
         update_cache: true
         upgrade: 'yes'

@@ -1,134 +1,63 @@
-  - hosts: server
-    vars:
-      ssh_path: '/Users/dan/.ssh/id_ed25519.pub'
-    become: true
-    tasks:
-      - name: Install Vim
-        ansible.builtin.apt:
-          name: vim
-          state: present
-          update_cache: true
+- name: Install and Configure Web Server
+  hosts: server
+  vars:
+    ssh_path: '/Users/dan/.ssh/id_ed25519.pub'
+  become: true
+  tasks:
+    - name: Install Unzip
+      ansible.builtin.apt:
+        name: unzip
+        state: present
+        update_cache: true
 
-      - name: Install Unzip
-        ansible.builtin.apt:
-          name: unzip
-          state: present
-          update_cache: true
+    - name: Install Vim
+      ansible.builtin.apt:
+        name: vim
+        state: present
+        update_cache: true
 
-      - name: Build Essentials
-        ansible.builtin.apt:
-          name: build-essential
-          state: present
-          update_cache: true
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
 
-      - name: Install Nginx
-        ansible.builtin.apt:
-          name: nginx
-          state: present
-          update_cache: true
+    - name: Make sure nginx is started
+      ansible.builtin.systemd:
+        name: nginx.service
+        state: started
 
-      - name: Install a latest ufw
-        ansible.builtin.apt:
-          name: ufw
-          state: present
+    - name: Install docker manually
+      block:
+        - name: Verify if docker is installed
+          ansible.builtin.command: docker ps
+          changed_when: true
+          register: command_result
+          ignore_errors: true
 
-      - name: Install rclone dependencies
-        ansible.builtin.apt:
-          name:
-            - curl
-            - wget
-            - unzip
-            - ca-certificates
-            - gnupg
-            - lsb-release
-          state: present
-          update_cache: true
+        - name: Run fail docker script if command fails
+          ansible.builtin.script: ../../scripts/docker.sh
+          when: command_result is failed
 
-      - name: Install rclone
-        ansible.builtin.apt:
-          name: rclone
-          state: present
-          update_cache: true
+        - name: Make sure docker is started
+          ansible.builtin.systemd:
+            name: docker.service
+            state: started
 
-      - name: Make sure nginx is started
-        ansible.builtin.systemd:
-          name: nginx.service
-          state: started
+    - name: Add the user 'projects' with a bash shell, appending the group 'docker' to the user's groups
+      ansible.builtin.user:
+        name: projects
+        create_home: true
+        shell: /bin/bash
+        groups: sudo, docker
+        append: true
 
-      - name: Setup firewall with ufw
-        ansible.builtin.command: ufw allow 'Nginx HTTP'
-        register: ufw_nginx
-        changed_when: false
+    - name: Set authorized key taken from file
+      ansible.posix.authorized_key:
+        user: projects
+        state: present
+        key: "{{ lookup('file', ssh_path) }}"
 
-      - name: Install docker from official site
-        block:
-          - name: Verify if docker is installed
-            ansible.builtin.command: docker ps
-            changed_when: true
-            register: command_result
-            ignore_errors: true
-
-          - name: Executar script de recuperação se o comando falhar
-            ansible.builtin.script: ../../scripts/docker.sh
-            when: command_result is failed
-
-      - name: Make sure docker is started
-        ansible.builtin.systemd:
-          name: docker.service
-          state: started
-
-      - name: Add the user 'lab' with a bash shell, appending the group 'docker' to the user's groups
-        ansible.builtin.user:
-          name: lab
-          create_home: true
-          shell: /bin/bash
-          groups: sudo, docker
-          append: true
-
-      - name: Add the user 'syncthing' with a bash shell, appending the group 'docker' to the user's groups
-        ansible.builtin.user:
-          name: syncthing
-          create_home: true
-          shell: /bin/bash
-          groups: sudo, docker
-          append: true
-
-      - name: Set authorized key taken from file
-        ansible.posix.authorized_key:
-          user: lab
-          state: present
-          key: "{{ lookup('file', ssh_path) }}"
-
-      - name: Set authorized key taken from file
-        ansible.posix.authorized_key:
-          user: syncthing
-          state: present
-          key: "{{ lookup('file', ssh_path) }}"
-
-      - name: Install syncthing manually
-        block:
-          - name: Verify if syncthing is installed
-            ansible.builtin.command: syncthing --version
-            changed_when: true
-            register: command_result
-            ignore_errors: true
-
-          - name: Run install script if command fails
-            ansible.builtin.script: ../../scripts/syncthing.sh
-            when: command_result is failed
-
-      - name: Install aws cli manually
-        block:
-          - name: Verify if aws cli is installed
-            ansible.builtin.command: aws --version
-            changed_when: true
-            register: command_result
-            ignore_errors: true
-
-          - name: Run install script if command fails
-            ansible.builtin.script: ../../scripts/aws-cli.sh
-            when: command_result is failed
-
-      - name: Reboot machine and send a message
-        ansible.builtin.reboot:
-          msg: "Rebooting machine in 5 seconds"
+    - name: Reboot machine and send a message
+      ansible.builtin.reboot:
+        msg: "Rebooting machine in 5 seconds"

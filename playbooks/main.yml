@@ -1,8 +1,8 @@
 - name: System Update
   import_playbook: basic/apt.yml
 
-- name: Timezone
+- name: Configure Timezone
   import_playbook: basic/timezone.yml
 
-- name: Web
+- name: Install and Configure Web Server
   import_playbook: basic/web.yml

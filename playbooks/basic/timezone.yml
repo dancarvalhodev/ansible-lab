@@ -1,8 +1,8 @@
-- name: Set timezone and configure timesyncd
+- name: Timezone Playbook
   hosts: server
   become: true
   tasks:
-    - name: Set timezone
+    - name: Set timezone with timedatectl
       ansible.builtin.command: timedatectl set-timezone America/Sao_Paulo
       register: timedatectl_output
       changed_when: "'Time zone America/Sao_Paulo' not in timedatectl_output.stdout"
@@ -12,7 +12,7 @@
         name: systemd-timesyncd.service
         state: stopped
 
-    - name: Copy over the timesyncd
+    - name: Copy timesyncd.conf template
       ansible.builtin.template:
         src: ../../config/templates/timesyncd.conf
         dest: /etc/systemd/timesyncd.conf
