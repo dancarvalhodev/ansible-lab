@@ -11,4 +11,14 @@ My personal ansible script to configure my personal server.
 3. Run the command bellow to run the ansible script. 
 **DON'T FORGET CHANGE SERVER IP INTO hosts.yml**
 
-`ansible-playbook playbooks/main.yml -i inventory/hosts.yml --user=root`
+`ansible-playbook playbooks/main.yml -i inventory/hosts.yml --user=root --ask-vault-pass`
+
+
+ansible-vault encrypt config/secrets/vault.yml
+ansible-vault encrypt inventory/hosts.yml
+
+ssh_path: "PATH_TO_SSH_PUBLIC_KEY"
+
+server:
+  hosts:
+    SERVER_IP
