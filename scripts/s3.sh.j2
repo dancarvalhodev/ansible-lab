@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Configurações
+PASTA="/home/projects/repos/docker-syncthing/data"
+BUCKET={{ bucket_name }}
+DATA=$(date +%Y%m%d)
+ARQUIVO_BACKUP="$BUCKET-$DATA.tar.gz"
+AWS_DIR="$HOME/.aws"
+AWS_CLI_DIR="/home/projects/repos/docker-aws-cli"
+
+# Cria a pasta ~/.aws se não existir
+mkdir -p "$AWS_DIR"
+
+# Verifica se a pasta de dados existe e não está vazia
+if [ ! -d "$PASTA" ] || [ -z "$(ls -A "$PASTA")" ]; then
+    echo "Erro: pasta $PASTA não existe ou está vazia"
+    exit 1
+fi
+
+# Compactar pasta dentro de ~/.aws
+tar -czvf "$AWS_DIR/$ARQUIVO_BACKUP" -C "$(dirname "$PASTA")" "$(basename "$PASTA")"
+
+# Verifica se o backup foi criado
+if [ ! -f "$AWS_DIR/$ARQUIVO_BACKUP" ]; then
+    echo "Erro: backup não foi criado"
+    exit 1
+fi
+
+# Enviar para S3 usando Docker Compose
+cd "$AWS_CLI_DIR" || exit
+docker compose run --rm -v "$AWS_DIR":"$AWS_DIR" aws-cli s3 cp "$AWS_DIR/$ARQUIVO_BACKUP" "s3://$BUCKET/"
+
+# Remover arquivo temporário
+rm "$AWS_DIR/$ARQUIVO_BACKUP"
+
+echo "Backup concluído com sucesso!"

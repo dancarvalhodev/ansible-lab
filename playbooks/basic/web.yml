@@ -8,9 +8,27 @@
         state: present
         update_cache: true
 
+    - name: Install Btop
+      ansible.builtin.apt:
+        name: btop
+        state: present
+        update_cache: true
+
+    - name: Install FastFetch
+      ansible.builtin.apt:
+        name: fastfetch
+        state: present
+        update_cache: true
+
     - name: Install Vim
       ansible.builtin.apt:
         name: vim
+        state: present
+        update_cache: true
+
+    - name: Install Cron
+      ansible.builtin.apt:
+        name: cron
         state: present
         update_cache: true
 
@@ -94,7 +112,7 @@
 
     - name: Copy Syncthing config to sites-available
       ansible.builtin.template:
-        src: ../../config/nginx/syncthing.conf
+        src: ../../config/nginx/syncthing.conf.j2
         dest: /etc/nginx/sites-available/syncthing.conf
         owner: root
         group: root
@@ -119,7 +137,62 @@
         state: restarted
       when: nginx_test.rc == 0
 
+    - name: Instalar Certbot + plugin NGINX
+      ansible.builtin.apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+        update_cache: true
 
-    # - name: Reboot machine and send a message
-    #   ansible.builtin.reboot:
-    #     msg: "Rebooting machine in 5 seconds"
+    - name: Emitir certificado SSL com Certbot
+      ansible.builtin.command:
+        cmd: "certbot --nginx -d {{ domain_name }} --non-interactive --agree-tos -m {{ email_cert }}"
+      register: certbot_result
+      changed_when: "'Congratulations' in certbot_result.stdout"
+
+    - name: Create a directory on the remote host
+      ansible.builtin.file:
+        path: /home/projects/scripts
+        state: directory
+        mode: '0755'
+        owner: projects
+        group: projects
+
+    - name: Copy S3 backup script
+      ansible.builtin.template:
+        src: ../../scripts/s3.sh.j2
+        dest: /home/projects/scripts/s3.sh
+        mode: '0755'
+
+    - name: Create a aws dir
+      ansible.builtin.file:
+        path: /root/.aws
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Copy config AWS
+      ansible.builtin.template:
+        src: ../../config/templates/config.j2
+        dest: /root/.aws/config
+        mode: '0755'
+
+    - name: Copy credentials AWS
+      ansible.builtin.template:
+        src: ../../config/templates/credentials.j2
+        dest: /root/.aws/credentials
+        mode: '0755'
+
+    - name: Cron Job backup S3
+      ansible.builtin.cron:
+        name: "Run daily backup at 21:00"
+        user: root
+        minute: "0"
+        hour: "21"
+        job: "/home/projects/scripts/s3.sh"
+
+    - name: Reboot machine and send a message
+      ansible.builtin.reboot:
+        msg: "Rebooting machine in 5 seconds"
