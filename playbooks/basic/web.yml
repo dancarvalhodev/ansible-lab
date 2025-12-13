@@ -118,6 +118,16 @@
         group: root
         mode: "0644"
 
+    - name: Remover site default do NGINX (Debian)
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Remover site default do NGINX (sites-available)
+      ansible.builtin.file:
+        path: /etc/nginx/sites-available/default
+        state: absent
+
     - name: Enable Syncthing (symlink)
       ansible.builtin.file:
         src: /etc/nginx/sites-available/syncthing.conf
